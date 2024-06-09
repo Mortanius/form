@@ -125,14 +125,15 @@ func (d Decoder) decodeValue(v reflect.Value, x interface{}) {
 		d.decodeValue(v.Elem(), x)
 		return
 	case reflect.Interface:
+		if empty {
+			return
+		}
 		if !v.IsNil() {
 			d.decodeValue(v.Elem(), x)
 			return
 
-		} else if empty {
-			return // Allow nil interfaces only if empty.
 		} else {
-			panic("form: cannot decode non-empty value into into nil interface")
+			v.Set(reflect.ValueOf(x))
 		}
 	}
 
@@ -205,7 +206,7 @@ func (d Decoder) decodeMap(v reflect.Value, x interface{}) {
 			case node:
 				w = reflect.MakeMap(stringMapType)
 			case string:
-				w = reflect.New(stringType).Elem()
+				w = reflect.New(reflect.TypeOf((*interface{})(nil)).Elem()).Elem()
 			default:
 				panic("value is neither node nor string")
 			}
@@ -311,6 +312,8 @@ func (d Decoder) decodeBasic(v reflect.Value, x interface{}) {
 		}
 	case reflect.String:
 		v.SetString(s)
+	case reflect.Interface:
+		v.Set(v)
 	default:
 		panic(t.String() + " has unsupported kind " + k.String())
 	}
